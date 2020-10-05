@@ -15,6 +15,13 @@ class DashboardViewController: BaseViewController {
     @IBOutlet weak var weatherImgView: UIImageView!
     @IBOutlet weak var cloudsAllLabel: UILabel!
     @IBOutlet weak var humidityLabel: UILabel!
+
+    @IBOutlet weak var humidityStaticTextLabel: UILabel!
+    @IBOutlet weak var tempMaxStaticTextLabel: UILabel!
+    @IBOutlet weak var tempMinStaticTextLabel: UILabel!
+    @IBOutlet weak var windStaticTextLabel: UILabel!
+    @IBOutlet weak var cloudStaticTextLabel: UILabel!
+
     @IBOutlet weak var decriptnLabel: UILabel!
     @IBOutlet weak var decriptnImgView: UIImageView!
     @IBOutlet weak var tempMaxLabel: UILabel!
@@ -26,12 +33,36 @@ class DashboardViewController: BaseViewController {
     @IBOutlet weak var tempMinView: UIView!
     @IBOutlet weak var windSpeedView: UIView!
     @IBOutlet weak var humidityView: UIView!
+
     var viewArr = [UIView]()
     var viewModel = DashboardViewModel()
+
+    enum SignupError: Error {
+        case illigalCharactersFound
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        basicSetUp()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        self.navigationController?.navigationBar.isHidden = true
+        _ = viewArr.map({$0.setBorderWidth(width: 0, borderColor: CommonMethods.sharedInstance.blackBorderColorWithlessAlpha(), corner: 20)})
+        
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        _ = viewArr.map({$0.dropShadowToTF(color: .darkGray, opacity: 0.5, radius: 15, cornerRadius: 20, scale: true)})
+        self.noDataLabel.dropShadowToTF(color: .darkGray, opacity: 0.5, radius: 25, cornerRadius: 30, scale: true)
+        noDataLabel.setCornerRadius(25)
+    }
+
+    func basicSetUp() {
         searchTextField.setCornerRadius(15)
-         noDataLabel.setCornerRadius(25)
+        noDataLabel.setCornerRadius(25)
         decriptnLabel.isHidden = true
         decriptnImgView.isHidden = true
         noDataLabel.isHidden = false
@@ -42,24 +73,8 @@ class DashboardViewController: BaseViewController {
         tempMinView.isHidden = true
         windSpeedView.isHidden = true
         humidityView.isHidden = true
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        self.navigationController?.navigationBar.isHidden = true
-        self.tempMaxView.setBorderWidth(width: 0, borderColor: CommonMethods.sharedInstance.blackBorderColorWithlessAlpha(), corner: 20)
-        self.tempMinView.setBorderWidth(width: 0, borderColor: CommonMethods.sharedInstance.blackBorderColorWithlessAlpha(), corner: 20)
-        self.windSpeedView.setBorderWidth(width: 0, borderColor: CommonMethods.sharedInstance.blackBorderColorWithlessAlpha(), corner: 20)
-        self.humidityView.setBorderWidth(width: 0, borderColor: CommonMethods.sharedInstance.blackBorderColorWithlessAlpha(), corner: 20)
-    }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        self.tempMaxView.dropShadowToTF(color: .darkGray, opacity: 0.5, radius: 15, cornerRadius: 20, scale: true)
-        self.tempMinView.dropShadowToTF(color: .darkGray, opacity: 0.5, radius: 15, cornerRadius: 20, scale: true)
-        self.windSpeedView.dropShadowToTF(color: .darkGray, opacity: 0.5, radius: 15, cornerRadius: 20, scale: true)
-        self.humidityView.dropShadowToTF(color: .darkGray, opacity: 0.5, radius: 15, cornerRadius: 20, scale: true)
-        self.noDataLabel.dropShadowToTF(color: .darkGray, opacity: 0.5, radius: 15, cornerRadius: 30, scale: true)
+        let tap: UITapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(UIInputViewController.dismissKeyboard))
+        view.addGestureRecognizer(tap)
     }
 
     func setUpUI() {
@@ -104,26 +119,38 @@ class DashboardViewController: BaseViewController {
 
     /// Update profile BUTTON ACTION
     @IBAction func searchButtonClick(_ sender: UIButton) {
-        if let txt = searchTextField.text {
-            if let object = getDBObj(cityName: txt) {
+        guard let txt = searchTextField.text  else {
+            return
+        }
+        let trimmedTxt = txt.trimmingCharacters(in: .whitespaces)
+        if trimmedTxt != "" {
+            searchTextField.text = trimmedTxt
+            self.view.endEditing(true)
+            if let object = getDBObj(cityName: trimmedTxt) {
                 self.viewModel.dbObject = object
                 setUpUI()
             } else {
                 MBProgressHUD.showAdded(to: self.view, animated: true)
-                viewModel.getWeatherDataAPICall(cityNAme: txt) { success in
-                    MBProgressHUD.hide(for: self.view, animated: true)
-                    self.view.endEditing(true)
-                    if success ?? false {
-                        self.viewModel.dbObject = self.getDBObj(cityName: txt)
-                        self.setUpUI()
-                    } else {
+                viewModel.getWeatherDataAPICall(cityNAme: trimmedTxt) { [weak self] success in
+                    if let weakSelf = self {
                         DispatchQueue.main.async {
-                            let cancelAction = UIAlertAction(title: "OK", style: .default, handler: nil)
-                            self.showAlert(with: "City not found", message: "", actions: [cancelAction])
+                            MBProgressHUD.hide(for: weakSelf.view, animated: true)
+                            if success ?? false {
+                                weakSelf.viewModel.dbObject = weakSelf.getDBObj(cityName: trimmedTxt)
+                                weakSelf.setUpUI()
+                            } else {
+                                let cancelAction = UIAlertAction(title: "OK", style: .default, handler: { _ in
+                                    weakSelf.searchTextField.text = ""
+                                    weakSelf.basicSetUp()
+                                })
+                                weakSelf.showAlert(with: "City not found", message: "Please enter correct city Name..", actions: [cancelAction])
+                            }
                         }
                     }
                 }
             }
+        } else {
+            searchTextField.text = ""
         }
     }
 
@@ -132,5 +159,26 @@ class DashboardViewController: BaseViewController {
             return object
         }
         return nil
+    }
+
+    @objc func dismissKeyboard() {
+        view.endEditing(true)
+    }
+
+    func isLocationValid(_ loc: String) throws {
+        // Check for illigal characters
+        if (loc.rangeOfCharacter(from: viewModel.invalidCharacters) != nil) {
+            throw SignupError.illigalCharactersFound
+        }
+    }
+}
+
+extension DashboardViewController: UITextFieldDelegate {
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+
+    }
+
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        self.view.endEditing(true)
     }
 }

@@ -28,6 +28,6 @@ class DashboardCoordinator: BaseCoordinator, CommonCoordinator {
 }
 
 extension DashboardCoordinator: DashboardViewModelDelegate {
-    func pushViewController(navigationController: UINavigationController) {
+    func pushDailyForecastViewController(city: String) {
     }
 }

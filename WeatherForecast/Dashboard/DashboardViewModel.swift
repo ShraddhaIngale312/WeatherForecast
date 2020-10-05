@@ -12,7 +12,7 @@ import CoreData
 
 protocol DashboardViewModelDelegate: class {
     /// Push VC to NavController
-    func pushViewController(navigationController: UINavigationController)
+    func pushDailyForecastViewController(city: String)
 }
 
 class DashboardViewModel: BaseViewModel {
@@ -20,37 +20,42 @@ class DashboardViewModel: BaseViewModel {
     var notFirstLoad = false
     var currentWeatherData = CurrentWeatherData()
     var dbObject: NSManagedObject?
+    let invalidCharacters = CharacterSet(charactersIn: "{}$#%*&^.,/?!@")
+
     func getWeatherDataAPICall(cityNAme: String, _ completion: @escaping (_ success: Bool?) -> Void) {
         // Create URL
         let apiURL = Constants.serverBaseURLCommon + Constants.EndPoints.getWeatherDataPart1 + cityNAme + Constants.EndPoints.getWeatherDataPart2 + Constants.appKey
-        let url = URL(string: apiURL)
+        guard let urlString = apiURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return }
+        let url = URL(string: urlString)
         guard let requestUrl = url else { return }
         // Create URL Request
         var request = URLRequest(url: requestUrl)
         // HTTP Method to use
         request.httpMethod = "GET"
         // Send HTTP Request
-        let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-            // Check if Error took place
-            if let error = error {
-                print("Error took place \(error)")
-                return
-            }
-            if let response = response as? HTTPURLResponse {
-                print("Response HTTP Status code: \(response.statusCode)")
-                if response.statusCode == 404 {
-                   completion(false)
+        let task = URLSession.shared.dataTask(with: request) { [weak self] (data, response, error) in
+            if let weakSelf = self {
+                // Check if Error took place
+                if let error = error {
+                    print("Error took place \(error)")
+                    return
                 }
-            }
-            if let data = data, let dataString = String(data: data, encoding: .utf8), let dict = CommonMethods.sharedInstance.convertToDictionary(text: dataString) {
-                print("Response data string:\n \(dataString)", dict)
-                self.currentWeatherData = CurrentWeatherData.init(fromDictionary: dict)
-                DispatchQueue.main.async {
-                    self.createData(data: self.currentWeatherData)
-                    completion(true)
+                if let response = response as? HTTPURLResponse {
+                    print("Response HTTP Status code: \(response.statusCode)")
+                    if response.statusCode == 404 {
+                        completion(false)
+                    }
                 }
-            } else {
-                completion(false)
+                if let data = data, let dataString = String(data: data, encoding: .utf8), let dict = CommonMethods.sharedInstance.convertToDictionary(text: dataString) {
+                    print("Response data string:\n \(dataString)", dict)
+                    weakSelf.currentWeatherData = CurrentWeatherData.init(fromDictionary: dict)
+                    DispatchQueue.main.async {
+                        weakSelf.createData(data: weakSelf.currentWeatherData)
+                        completion(true)
+                    }
+                } else {
+                    completion(false)
+                }
             }
         }
         task.resume()

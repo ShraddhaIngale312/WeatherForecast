@@ -8,14 +8,18 @@
 import Foundation
 
 struct Constants {
-//"https://api.openweathermap.org/data/2.5/weather?q=maharashtra&appid=300fca411c378c630b8d52e7926f845e"
-
+// "https://api.openweathermap.org/data/2.5/weather?q=maharashtra&appid=300fca411c378c630b8d52e7926f845e"
+// "https://api.openweathermap.org/data/2.5/forecast/daily?q={city name}&cnt={cnt}&appid={API key}"
+    
     static let serverBaseURLCommon = "https://api.openweathermap.org/"
     static let appKey = "300fca411c378c630b8d52e7926f845e"
 
     enum EndPoints {
         static let getWeatherDataPart1 = "data/2.5/weather?q="
         static let getWeatherDataPart2 = "&appid="
+        static let getPastWeatherDataPart1 = "data/2.5/forecast/daily?q="
+        static let getPastWeatherDataPart2 = "&cnt="
+        static let getPastWeatherDataPart3 = "&appid="
         static let getWeatherIcon = "http://openweathermap.org/img/wn/10d@2x.png"
     }
 

@@ -10,13 +10,47 @@ import XCTest
 @testable import WeatherForecast
 
 class WeatherForecastTests: XCTestCase {
-
+    var sut: DashboardViewController!
+   
     override func setUp() {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        continueAfterFailure = false
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        sut = storyboard.instantiateViewController(withIdentifier: "DashboardViewController") as? DashboardViewController
+        sut.loadViewIfNeeded()
     }
 
     override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        sut = nil
+    }
+
+    func testLabels_StaticText() throws {
+        let noDataLabel = try XCTUnwrap(sut.noDataLabel, "NO data Label is not connected")
+        XCTAssertEqual(noDataLabel.text, "Please Search City For Weather Information.", "noDataLabel Text  does not Match")
+
+        let humidityStaticTextLabel = try XCTUnwrap(sut.humidityStaticTextLabel, "HUMIDITY Label is not connected")
+        XCTAssertEqual(humidityStaticTextLabel.text, "HUMIDITY", "HUMIDITY Text does not Match")
+
+        let tempMaxStaticTextLabel = try XCTUnwrap(sut.tempMaxStaticTextLabel, "AVERAGE MAX TEMPERATURE Label is not connected")
+        XCTAssertEqual(tempMaxStaticTextLabel.text, "AVERAGE MAX TEMPERATURE", "AVERAGE MAX TEMPERATURE Text  does not Match")
+
+        let tempMinStaticTextLabel = try XCTUnwrap(sut.tempMinStaticTextLabel, "MIN TEMPERATURE Label is not connected")
+        XCTAssertEqual(tempMinStaticTextLabel.text, "AVERAGE MIN TEMPERATURE", "MIN TEMPERATURE Text  does not Match")
+
+        let windStaticTextLabel = try XCTUnwrap(sut.windStaticTextLabel, "WIND Label is not connected")
+        XCTAssertEqual(windStaticTextLabel.text, "WIND", "WIND Text  does not Match")
+
+        let cloudStaticTextLabel = try XCTUnwrap(sut.cloudStaticTextLabel, "Cloud Label is not connected")
+        XCTAssertEqual(cloudStaticTextLabel.text, "Cloud", "Cloud Text does not Match")
+    }
+
+    func testSignupForm_WhenLoaded_TextFieldAreConnected() throws {
+        _ = try XCTUnwrap(sut.searchTextField, "The Search UITextField is not connected")
+    }
+
+    func testSearchTextField_HasPlaceHolderAndContentTypeSet() throws {
+        let searchTextField = try XCTUnwrap(sut.searchTextField, "Email address UITextField is not connected")
+        XCTAssertEqual(searchTextField.placeholder, "Search", "Search UITextField placeholder does not Match")
+        XCTAssertEqual(searchTextField.textContentType, UITextContentType.location, "Search UITextField does not have an Location Content Type set")
     }
 
     func testExample() {
@@ -31,4 +65,8 @@ class WeatherForecastTests: XCTestCase {
         }
     }
 
-}
+    func testLocationValidation_WhenInvalidCharactersProvided_ThrowsAnError() {
+             XCTAssertNoThrow(try sut.isLocationValid("Sergey"), "The isFirstNameValid() should not have thrown an error when there are no illigal characters provided")
+        }
+    }
+
